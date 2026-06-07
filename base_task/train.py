@@ -106,9 +106,9 @@ test_dataset = CustomDataset(X_test, y_test)
 # shuffle = True gives-Randomizes training data each epoch to improve generalization.
 # ==========================================================
 
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 
-test_loader = DataLoader(test_dataset,batch_size=32,shuffle=False)
+test_loader = DataLoader(test_dataset,batch_size=64,shuffle=False)
 # ==========================================================
 # STEP 5: MODEL ARCHITECTURE
 # ==========================================================
@@ -187,11 +187,11 @@ class MyNN(nn.Module):
 # ==========================================================
 # STEP 6: TRAINING CONFIGURATION
 # ==========================================================
-epochs = 100
-learning_rate = 0.1
+epochs = 150
+learning_rate = 0.001
 model = MyNN(X_train.shape[1]).to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(),lr=learning_rate)
+optimizer = optimizer = optim.Adam(model.parameters(),lr=learning_rate)
 # ==========================================================
 # STEP 7: MODEL TRAINING AND EVALUATION
 # ==========================================================
@@ -210,6 +210,8 @@ loss_history = []
 accuracy_history = []
 
 final_predictions = []
+best_accuracy = 0
+
 
 for epoch in range(epochs):
 
@@ -259,8 +261,13 @@ for epoch in range(epochs):
             correct += (predicted == batch_labels).sum().item()
 
     accuracy = correct / total
+    #best accuracy
+    if accuracy > best_accuracy:
+        best_accuracy = accuracy
+        
 
-    # Save predictions only from the FINAL epoch
+        
+     # Save predictions only from the FINAL epoch
     if epoch == epochs - 1:
         final_predictions = epoch_predictions
 
@@ -268,11 +275,11 @@ for epoch in range(epochs):
     accuracy_history.append(accuracy)
 
     print(f"Epoch: {epoch + 1}, Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}")
-
     model.train()
 
 print("\n==========================")
 print(f"Final Test Accuracy: {accuracy:.4f}")
+print(f"Best Test Accuracy: {best_accuracy:.4f}")
 print("==========================")
 
 
