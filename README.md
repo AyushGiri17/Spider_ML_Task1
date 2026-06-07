@@ -125,6 +125,25 @@ applied_ml_domain/README.md
 * Each task contains its own README file with implementation details and usage instructions.
 
 ---
+## Update (7 June 2026)
+
+After the initial submission, additional experiments were performed to improve model performance while keeping the original architecture unchanged.
+
+### Changes Made
+
+* Replaced SGD optimizer with Adam optimizer.
+* Reduced learning rate from `0.1` to `0.001`.
+* Increased training epochs from `100` to `150`.
+* Increased batch size from `32` to `64`.
+* Added tracking of best test accuracy during training for analysis.
+
+### Result
+
+* Improved test accuracy from approximately **86.6%** to **87.06%**.
+* Reduced test loss from approximately **0.26** to **0.2444**.
+
+These changes improved model convergence and overall performance without modifying the network architecture.
+
 
 ## Author
 
