@@ -59,32 +59,20 @@ import os
 
 from dotenv import load_dotenv
 
-from langchain_huggingface import (
-    HuggingFaceEmbeddings)
-from langchain_groq import (
-    ChatGroq
-)
+from langchain_huggingface import (HuggingFaceEmbeddings)
+from langchain_groq import (ChatGroq)
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from langchain_community.document_loaders import (
-    DirectoryLoader,
-    PyPDFLoader
-)
+from langchain_community.document_loaders import ( DirectoryLoader,PyPDFLoader)
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
 import streamlit as st
 
-from langchain_core.runnables import (
-    RunnableParallel,
-    RunnablePassthrough,
-    RunnableLambda
-)
+from langchain_core.runnables import (RunnableParallel,RunnablePassthrough,RunnableLambda)
 
-from langchain_core.output_parsers import (
-    StrOutputParser
-)
+from langchain_core.output_parsers import (StrOutputParser)
 load_dotenv()
 
 #======================================================================
@@ -95,12 +83,7 @@ load_dotenv()
 st.session_state.setdefault("chat_history", [])
 
 
-loader = DirectoryLoader(
-    "papers",
-    glob="*.pdf",
-    loader_cls=PyPDFLoader
-)
-
+loader = DirectoryLoader("papers",glob="*.pdf",loader_cls=PyPDFLoader)
 documents = loader.load()
 
 #=========================================================================================	
@@ -143,24 +126,15 @@ chunks = splitter.split_documents(documents)
 # significantly reducing startup time.
 #====================================================================
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 if os.path.exists("faiss_db"):
 
-    vector_store = FAISS.load_local(
-        "faiss_db",
-        embeddings,
-        allow_dangerous_deserialization=True
-    )
+    vector_store = FAISS.load_local("faiss_db",embeddings, allow_dangerous_deserialization=True)
 
 else:
 
-    vector_store = FAISS.from_documents(
-        chunks,
-        embeddings
-    )
+    vector_store = FAISS.from_documents(chunks,embeddings)
 
     vector_store.save_local("faiss_db")
 #==================================================================================================
@@ -175,32 +149,13 @@ retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"
 #Here context question and history all goes down as combined prompt
 #===========================================================================================================
 
-llm = ChatGroq(
-    model="llama-3.3-70b-versatile",
-    temperature=0.2,max_tokens=1500
-)
-prompt = PromptTemplate(
-    template="""
-Chat History:
-{history}
-
-Context:
-{context}
-
-Question:
-{question}
-
-Answer ONLY from the provided context.
-
-If the answer cannot be found,
-say "I don't know."
+llm = ChatGroq(model="llama-3.3-70b-versatile",temperature=0.2,max_tokens=1500)
+prompt = PromptTemplate(template="""Chat History:{history}
+Context:{context}
+Question:{question}
+Answer ONLY from the provided context.If the answer cannot be found,say "I don't know."
 """,
-    input_variables=[
-        "history",
-        "context",
-        "question"
-    ]
-)
+    input_variables=["history","context","question"])
 #===========================================================================================================
 
 #step6  Building a Chain , as parallel chain was required, using runnableParallel 
@@ -230,36 +185,20 @@ def extract_sources(retrieved_docs):
 
     for doc in retrieved_docs:
 
-        source = doc.metadata.get(
-            "source",
-            "Unknown"
-        )
+        source = doc.metadata.get("source", "Unknown")
+        page = doc.metadata.get("page","Unknown")
+        sources.append(f"{source} (page {page})")
 
-        page = doc.metadata.get(
-            "page",
-            "Unknown"
-        )
-
-        sources.append(
-            f"{source} (page {page})"
-        )
 
     return list(set(sources))
 
   
 parallel_chain = RunnableParallel({
-    "context": retriever | RunnableLambda(
-        format_docs
-    ),
-
+    "context": retriever | RunnableLambda(format_docs),
     "question": RunnablePassthrough(),
 
-    "history": RunnableLambda(
-        lambda x: format_chat_history()
-    )
-})
-
-
+    "history": RunnableLambda(lambda x: format_chat_history())})
+       
 parser = StrOutputParser()
 main_chain = parallel_chain | prompt | llm | parser
 #===========================================================================================================
@@ -281,36 +220,25 @@ for chat in st.session_state.chat_history:
 
 # Chat input box at bottom
 
-question = st.chat_input(
-    "Ask a question about your papers..."
-)
-
+question = st.chat_input("Ask a question about your papers...")
+    
 if question:
 
     with st.chat_message("user"):
         st.write(question)
     #putting question in retriever to get related chunks
-    retrieved_docs = retriever.invoke(
-        question
-    )
+    retrieved_docs = retriever.invoke( question )
     #to get the origin sources of chunks from metadata
 
-    sources = extract_sources(
-        retrieved_docs
-    )
+    sources = extract_sources(retrieved_docs)
+        
     # to invoke main chain and get final response
 
-    response = main_chain.invoke(
-        question
-    )
+    response = main_chain.invoke(question)
     # to append chat history
 
-    st.session_state.chat_history.append(
-        {
-            "question": question,
-            "answer": response
-        }
-    )
+    st.session_state.chat_history.append({ "question": question,"answer": response})
+       
     # Display the chatbot response inside an assistant-style
     # chat message. Source references used during retrieval are
     # shown inside a collapsible dropdown to keep the interface
